@@ -6,40 +6,49 @@ const morganFormat = ":method :url :status :response-time ms";
 
 const app = express();
 
-
-
 app.use(
-    morgan(morganFormat, {
-      stream: {
-        write: (message) => {
-          const logObject = {
-            method: message.split(" ")[0],
-            url: message.split(" ")[1],
-            status: message.split(" ")[2],
-            responseTime: message.split(" ")[3],
-          };
-          logger.info(JSON.stringify(logObject));
-        },
+  morgan(morganFormat, {
+    stream: {
+      write: (message) => {
+        const logObject = {
+          method: message.split(" ")[0],
+          url: message.split(" ")[1],
+          status: message.split(" ")[2],
+          responseTime: message.split(" ")[3],
+        };
+        logger.info(JSON.stringify(logObject));
       },
-    })
+    },
+  })
 );
 
 // common middlewares
-app.use(cors({
+app.use(
+  cors({
     origin: process.env.CORS_ORIGIN,
-    credentials: true, 
-}))
+    credentials: true,
+  })
+);
 
-app.use(express.json({
-    limit: "16kb"
-})); 
+app.use(
+  express.json({
+    limit: "16kb",
+  })
+);
 
-app.use(express.urlencoded({
-    extended: true, 
-    limit: "16kb"
-})); 
+app.use(
+  express.urlencoded({
+    extended: true,
+    limit: "16kb",
+  })
+);
 
 app.use(express.static("public"));
 
+// importing routes
+import healthcheckRouter from "./routes/healtcheck.routes.js";
 
-export {app}; 
+//routes
+app.use("/api/v1/healthcheck", healthcheckRouter);
+
+export { app };
