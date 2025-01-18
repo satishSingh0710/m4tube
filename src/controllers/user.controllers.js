@@ -93,10 +93,10 @@ const registerUser = asyncHandler(async (req, res) => {
   } catch (error) {
     console.log("User creation failed ", error);
     if (avatar) {
-      deleteFromCloudinary(avatar.public_id);
+      await deleteFromCloudinary(avatar.public_id);
     }
     if (coverImage) {
-      deleteFromCloudinary(coverImage.public_id);
+      await deleteFromCloudinary(coverImage.public_id);
     }
 
     throw new ApiError(
@@ -236,4 +236,155 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
-export { registerUser, loginUser, refreshAccessToken, logoutUser };
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const user = await User.findById(req.user?._id);
+
+  const validatePassword = await User.isPasswordCorrect(oldPassword);
+
+  if (!validatePassword) {
+    throw new ApiError(400, "Incorrect password");
+  }
+
+  user.password = newPassword;
+
+  await user.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password changed successfully"));
+});
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user?._id).select(
+    "-password -refreshToken"
+  );
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res.status(200).json(new ApiResponse(200, user, "User found"));
+});
+
+const updateAccountDetails = asyncHandler(async (req, res) => {
+  const { fullname, email } = req.body;
+  const user = await User.findById(req.user?._id);
+
+  if (!user) {
+    throw new ApiError(404, "Invalid user");
+  }
+
+  if (!fullname || !email) {
+    throw new ApiError(400, "fullname and email are required");
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        fullname,
+        email,
+      },
+    },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, updatedUser, "User details updated successfully")
+    );
+});
+
+const updateUserAvatar = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user?._id);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const avatarLocalPath = req.file?.path; // single file
+  if (!avatarLocalPath) {
+    throw new ApiError(400, "Avatar image is required");
+  }
+
+  let avatar = await uploadOnCloudinary(avatarLocalPath);
+  if (!avatar?.url) {
+    throw new ApiError(500, "Error uploading avatar");
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    user._id,
+    {
+      $set: {
+        avatar: avatar.url,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  if (!updatedUser) {
+    console.log("User creation failed ", error);
+    if (avatar) {
+      await deleteFromCloudinary(avatar.public_id);
+    }
+    throw new ApiError(500, "Error updating user avatar");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, updatedUser, "User avatar updated successfully")
+    );
+});
+
+const updateUserCoverImage = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user?._id);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const coverImageLocalPath = req.file?.path;
+  const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+
+  if (!coverImage?.url) {
+    throw new ApiError(500, "Error uploading cover image");
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    user._id,
+    {
+      $set: {
+        coverImage: coverImage.url,
+      },
+    },
+    { new: true }
+  );
+
+  if (!updatedUser) {
+    console.log("User creation failed ", error);
+    if (coverImage) {
+      await deleteFromCloudinary(coverImage.public_id);
+    }
+    throw new ApiError(500, "Error updating user cover image");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, updatedUser, "User cover image updated successfully")
+    );
+});
+
+export {
+  registerUser,
+  loginUser,
+  refreshAccessToken,
+  logoutUser,
+  changeCurrentPassword,
+  getCurrentUser,
+  updateAccountDetails,
+  updateUserAvatar,
+  updateUserCoverImage,
+};
