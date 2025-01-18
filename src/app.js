@@ -41,13 +41,15 @@ app.use(
     limit: "16kb",
   })
 );
+
 app.use(express.static("public"));
 app.use(cookieParser());
 
 // importing routes
 import healthcheckRouter from "./routes/healtcheck.routes.js";
-
+import userRouter from "./routes/user.routes.js";
 //routes
 app.use("/api/v1/healthcheck", healthcheckRouter);
+app.use("/api/v1/users", userRouter);
 
 export { app };
