@@ -322,7 +322,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     {
       new: true,
     }
-  );
+  ).select("-password -refreshToken");
 
   if (!updatedUser) {
     console.log("User creation failed ", error);
@@ -360,7 +360,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
       },
     },
     { new: true }
-  );
+  ).select("-password -refreshToken");
 
   if (!updatedUser) {
     console.log("User creation failed ", error);

@@ -10,6 +10,12 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+const extractPublicIdFromUrl = (url) => {
+  const regex = /\/v[0-9]+\/(.+)\..+$/; // Matches the public ID in Cloudinary URL
+  const match = url.match(regex);
+  return match ? match[1] : null;
+};
+
 const uploadOnCloudinary = async (localFilePath) => {
   try {
     if (!localFilePath) {
