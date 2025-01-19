@@ -4,7 +4,7 @@ import { Video } from '../models/video.models.js';
 import { User } from '../models/user.models.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import mongoose, { isValidObjectId } from 'mongoose';
-import { uploadOnCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js';
+import { uploadOnCloudinary, deleteFromCloudinary, deleteFromCloudinaryUsingUrl } from '../utils/cloudinary.js';
 
 const getAllVideos = asyncHandler(async (req, res) => {
     try {
@@ -152,11 +152,65 @@ const updateVideo = asyncHandler(async (req, res) => {
     return res.status(200).josn(new ApiResponse(200, savedVideo, "Video updated successfully"));
 })
 
+// todo later
+const deleteVideo = asyncHandler(async (req, res) => {
+    const { videoId } = req.params
+    if (!videoId) {
+        throw new ApiError(400, "Please provide video id")
+    }
+    const userId = req.user._id;
+    const video = await Video.findById(videoId)
+    if (!video) {
+        throw new ApiError(404, "Video not found")
+    }
+    if (video?.owner.toString() !== userId.toString()) {
+        throw new ApiError(401, "You are not authorized to delete this video")
+    }
+
+    const videoUrl = video?.videoFile;
+    const thumbnailUrl = video?.thumbnail;
+    const deletedVideo = await Video.findByIdAndDelete(videoId)
+    if (!deletedVideo) {
+        throw new ApiError(500, "Failed to delete video")
+    }
+
+    try {
+        if (videoUrl) await deleteFromCloudinaryUsingUrl(videoUrl)
+        if (thumbnailUrl) await deleteFromCloudinaryUsingUrl(thumbnailUrl);
+    } catch (error) {
+        throw new ApiError(500, "Failed to delete video and thumbnail from cloudinary")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, deletedVideo, "Video deleted successfully"))
+})
+
+const togglePublishStatus = asyncHandler(async (req, res) => {
+    const { videoId } = req.params
+    const video = await Video.findById(videoId)
+    if (!video) {
+        throw new ApiError(404, "Video not found")
+    }
+    if (video.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(401, "You are not authorized to update this video")
+    }
+    video.isPublished = !video.isPublished;
+    const savedVideo = await video.save({ new: true })
+    if (!savedVideo) {
+        throw new ApiError(500, "Failed to update video")
+    }
+    return res
+        .status(200)
+        .json(new ApiResponse(200, savedVideo, "Video updated successfully"))
+})
 
 
 export {
     getAllVideos,
-    publishAVideo, 
+    publishAVideo,
     getVideoById,
-    updateVideo
+    updateVideo, 
+    deleteVideo, 
+    togglePublishStatus
 }

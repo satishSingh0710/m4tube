@@ -45,4 +45,12 @@ const deleteFromCloudinary = async (publicId) => {
   }
 }
 
-export { uploadOnCloudinary, deleteFromCloudinary};
+const deleteFromCloudinaryUsingUrl = async (url) => {
+  const publicId = extractPublicIdFromUrl(url);
+  if (!publicId) {
+    return null;
+  }
+  return await deleteFromCloudinary(publicId);
+}
+
+export { uploadOnCloudinary, deleteFromCloudinary, deleteFromCloudinaryUsingUrl};
