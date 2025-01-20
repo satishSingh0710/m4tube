@@ -68,8 +68,8 @@ const publishAVideo = asyncHandler(async (req, res) => {
         const { title, description } = req.body
 
         //get video, upload to cloudinary, create video
-        const videoPath = req.files?.video[0]?.path;
-        const thumbnailPath = req.files?.thumbnail[0]?.path;
+        const videoPath = req.files?.video?.[0]?.path;
+        const thumbnailPath = req.files?.thumbnail?.[0]?.path;
 
         if (!videoPath) {
             throw new ApiError(400, "Please provide video");
@@ -83,7 +83,10 @@ const publishAVideo = asyncHandler(async (req, res) => {
             video = await uploadOnCloudinary(videoPath);
             thumbnail = await uploadOnCloudinary(thumbnailPath);
         } catch (error) {
+            if (video) await deleteFromCloudinary(video.public_id);
+            if (thumbnail) await deleteFromCloudinary(thumbnail.public_id);
             console.log("Error uploading to cloudinary: ", error);
+            throw new ApiError(500, "Failed to upload video or thumbnail");
         }
 
         const uploadedVideo = await Video.create({
@@ -95,11 +98,8 @@ const publishAVideo = asyncHandler(async (req, res) => {
             owner: req.user._id,
             isPublished: false,
         })
-
         return res.status(201).json(new ApiResponse(201, uploadedVideo, "Video uploaded successfully"));
     } catch (error) {
-        if (video) await deleteFromCloudinary(video.public_id);
-        if (thumbnail) await deleteFromCloudinary(thumbnail.public_id);
         throw new ApiError(500, "Failed to upload video or thumbnail");
     }
 
@@ -149,7 +149,7 @@ const updateVideo = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Failed to update video");
     }
 
-    return res.status(200).josn(new ApiResponse(200, savedVideo, "Video updated successfully"));
+    return res.status(200).json(new ApiResponse(200, savedVideo, "Video updated successfully"));
 })
 
 // todo later
@@ -210,7 +210,7 @@ export {
     getAllVideos,
     publishAVideo,
     getVideoById,
-    updateVideo, 
-    deleteVideo, 
+    updateVideo,
+    deleteVideo,
     togglePublishStatus
 }
