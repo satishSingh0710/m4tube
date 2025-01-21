@@ -87,7 +87,7 @@ const deleteComment = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
     const deletedComment = await Comment.findOneAndDelete({
         _id: commentId,
-        owner: req.user._id, // Ensure the user owns the comment
+        owner: req.user._id,
     });
     if (!deletedComment) throw new ApiError(404, "Comment not found");
     return res.status(200).json(new ApiResponse(200, {}, "Comment deleted successfully"));
