@@ -152,7 +152,6 @@ const updateVideo = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, savedVideo, "Video updated successfully"));
 })
 
-// todo later
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     if (!videoId) {
